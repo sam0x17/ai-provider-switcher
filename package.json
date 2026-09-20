@@ -1,0 +1,270 @@
+{
+  "name": "ai-provider-switcher",
+  "displayName": "AI Provider Switcher",
+  "description": "Adds the models served by one or more OpenAI-compatible servers (LM Studio, Ollama, vLLM, llama.cpp…) to the model pickers of the Codex and Claude Code VS Code extensions, and routes requests for those models to the server that offers them.",
+  "version": "0.2.0",
+  "publisher": "durosoft",
+  "license": "MIT",
+  "private": true,
+  "engines": {
+    "vscode": "^1.96.0"
+  },
+  "categories": [
+    "AI",
+    "Other"
+  ],
+  "keywords": [
+    "codex",
+    "claude",
+    "lm studio",
+    "ollama",
+    "openai compatible",
+    "local models"
+  ],
+  "activationEvents": [
+    "onStartupFinished"
+  ],
+  "main": "./out/extension.js",
+  "contributes": {
+    "commands": [
+      {
+        "command": "aiProviderSwitcher.refresh",
+        "title": "Refresh Models",
+        "category": "AI Provider Switcher"
+      },
+      {
+        "command": "aiProviderSwitcher.enable",
+        "title": "Enable",
+        "category": "AI Provider Switcher"
+      },
+      {
+        "command": "aiProviderSwitcher.disable",
+        "title": "Disable (restore Codex and Claude settings)",
+        "category": "AI Provider Switcher"
+      },
+      {
+        "command": "aiProviderSwitcher.showModels",
+        "title": "Show Provider Models",
+        "category": "AI Provider Switcher"
+      },
+      {
+        "command": "aiProviderSwitcher.showLog",
+        "title": "Show Log",
+        "category": "AI Provider Switcher"
+      },
+      {
+        "command": "aiProviderSwitcher.openSettings",
+        "title": "Open Settings",
+        "category": "AI Provider Switcher"
+      }
+    ],
+    "configuration": {
+      "title": "AI Provider Switcher",
+      "properties": {
+        "aiProviderSwitcher.enabled": {
+          "type": "boolean",
+          "default": true,
+          "scope": "application",
+          "description": "Master switch. When off, the extension restores the Codex and Claude Code settings it manages and stops its local router."
+        },
+        "aiProviderSwitcher.providers": {
+          "type": "array",
+          "default": [],
+          "scope": "application",
+          "markdownDescription": "The OpenAI-compatible servers to offer models from. Each entry needs a `baseUrl` (including the `/v1` segment) and may set `name`, `apiKey`, `include`/`exclude` globs and `codexProviderId`. Leave this empty to use the single-server settings below instead.",
+          "items": {
+            "type": "object",
+            "required": [
+              "baseUrl"
+            ],
+            "additionalProperties": false,
+            "properties": {
+              "name": {
+                "type": "string",
+                "description": "Label shown next to this server's models in the pickers."
+              },
+              "baseUrl": {
+                "type": "string",
+                "description": "OpenAI-compatible base URL including the /v1 segment, e.g. http://192.168.1.128:8888/v1"
+              },
+              "apiKey": {
+                "type": "string",
+                "description": "Optional API key for this server. Sent as a Bearer token / x-api-key to it only."
+              },
+              "include": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                },
+                "description": "Glob patterns of model ids to offer from this server. Omit to use aiProviderSwitcher.models.include."
+              },
+              "exclude": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                },
+                "description": "Glob patterns of model ids to hide from this server. Omit to use aiProviderSwitcher.models.exclude."
+              },
+              "codexProviderId": {
+                "type": "string",
+                "pattern": "^[A-Za-z0-9_-]+$",
+                "description": "Id of the Codex model_providers entry for this server. Derived from the name when omitted."
+              }
+            }
+          }
+        },
+        "aiProviderSwitcher.baseUrl": {
+          "type": "string",
+          "default": "http://localhost:1234/v1",
+          "scope": "application",
+          "description": "Single-server setup: OpenAI-compatible base URL of the model server, including the /v1 segment (e.g. http://192.168.1.128:8888/v1). Ignored when aiProviderSwitcher.providers is set. Models are listed from <baseUrl>/models. LM Studio's /api/v0/models is used automatically for extra details when available."
+        },
+        "aiProviderSwitcher.apiKey": {
+          "type": "string",
+          "default": "",
+          "scope": "application",
+          "description": "Single-server setup: optional API key for the model server. Ignored when aiProviderSwitcher.providers is set. Sent as a Bearer token / x-api-key to that server only; Anthropic and OpenAI credentials are never forwarded to it."
+        },
+        "aiProviderSwitcher.providerName": {
+          "type": "string",
+          "default": "LM Studio",
+          "scope": "application",
+          "description": "Single-server setup: label shown next to the models in the pickers. Ignored when aiProviderSwitcher.providers is set."
+        },
+        "aiProviderSwitcher.models.include": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "default": [],
+          "scope": "application",
+          "description": "Glob patterns (case-insensitive, * and ?) of model ids to offer, for servers that do not set their own include list. Empty means all models."
+        },
+        "aiProviderSwitcher.models.exclude": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "default": [
+            "*embed*",
+            "*rerank*",
+            "*whisper*"
+          ],
+          "scope": "application",
+          "description": "Glob patterns of model ids to hide, for servers that do not set their own exclude list. Embedding models reported by LM Studio are always hidden."
+        },
+        "aiProviderSwitcher.models.refreshMinutes": {
+          "type": "number",
+          "default": 10,
+          "minimum": 0,
+          "scope": "application",
+          "description": "How often to re-read the model list from the server (0 disables periodic refresh; the Refresh Models command always works)."
+        },
+        "aiProviderSwitcher.claude.enabled": {
+          "type": "boolean",
+          "default": true,
+          "scope": "application",
+          "description": "Add the provider's models to the Claude Code model picker (via the modelPicker setting in ~/.claude/settings.json) and route them through the local router."
+        },
+        "aiProviderSwitcher.claude.routerPort": {
+          "type": "number",
+          "default": 41777,
+          "scope": "application",
+          "description": "Localhost port for the Anthropic-protocol router that sends provider models to the model server and everything else to Anthropic."
+        },
+        "aiProviderSwitcher.claude.anthropicUpstream": {
+          "type": "string",
+          "default": "https://api.anthropic.com",
+          "scope": "application",
+          "description": "Where non-provider (Anthropic) requests are forwarded. If ANTHROPIC_BASE_URL was already set in claudeCode.environmentVariables when the switcher was enabled, that value is used instead."
+        },
+        "aiProviderSwitcher.claude.behavesAs": {
+          "type": "string",
+          "default": "claude-sonnet-4-6",
+          "scope": "application",
+          "description": "Claude model whose client-side handling (prompt profile, effort defaults) Claude Code applies to provider models it does not know. Leave empty to omit."
+        },
+        "aiProviderSwitcher.claude.replaceBuiltInModels": {
+          "type": "boolean",
+          "default": false,
+          "scope": "application",
+          "description": "Show only Default plus the provider's models in the Claude Code picker (hides the built-in Anthropic lineup)."
+        },
+        "aiProviderSwitcher.claude.dropMcpTools": {
+          "type": "boolean",
+          "default": false,
+          "scope": "application",
+          "description": "When a provider model is used, remove MCP tools (names starting with mcp__) from the request to keep prompts small for local models. Claude Code's built-in tools are always kept."
+        },
+        "aiProviderSwitcher.codex.enabled": {
+          "type": "boolean",
+          "default": true,
+          "scope": "application",
+          "description": "Add the provider's models to the Codex model picker and start Codex threads that use them on a matching model_providers entry."
+        },
+        "aiProviderSwitcher.codex.providerId": {
+          "type": "string",
+          "default": "aiswitch",
+          "scope": "application",
+          "pattern": "^[A-Za-z0-9_-]+$",
+          "description": "Id of the Codex model_providers entry for a single-server setup, and the prefix for the ids derived from aiProviderSwitcher.providers entries (e.g. aiswitch-mac-studio). Must not be a built-in Codex provider id (openai, lmstudio, ollama…)."
+        },
+        "aiProviderSwitcher.codex.reasoningEfforts": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "enum": [
+              "low",
+              "medium",
+              "high",
+              "xhigh"
+            ]
+          },
+          "default": [
+            "low",
+            "medium",
+            "high"
+          ],
+          "scope": "application",
+          "description": "Reasoning effort choices offered for provider models in Codex. Use an empty list to hide the effort picker."
+        },
+        "aiProviderSwitcher.codex.writeConfigToml": {
+          "type": "boolean",
+          "default": true,
+          "scope": "application",
+          "description": "Also write the model_providers entry into ~/.codex/config.toml so the codex CLI in a terminal can use it (codex -m <model> -c model_provider=<providerId>)."
+        },
+        "aiProviderSwitcher.debug": {
+          "type": "boolean",
+          "default": false,
+          "scope": "application",
+          "description": "Verbose logging (router requests, Codex JSON-RPC rewrites)."
+        }
+      }
+    }
+  },
+  "scripts": {
+    "compile": "tsc -p ./",
+    "watch": "tsc -watch -p ./",
+    "test": "npm run compile && node --test test/*.test.js",
+    "package": "npm run compile && vsce package --no-dependencies",
+    "router": "node out/claude/router-cli.js"
+  },
+  "devDependencies": {
+    "@types/node": "^22.0.0",
+    "@types/vscode": "^1.96.0",
+    "@vscode/vsce": "^3.0.0",
+    "typescript": "^5.0.0"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/durosoft/ai-provider-switcher"
+  },
+  "capabilities": {
+    "untrustedWorkspaces": {
+      "supported": true,
+      "description": "The switcher only edits user-level settings and never reads workspace content."
+    },
+    "virtualWorkspaces": true
+  }
+}
