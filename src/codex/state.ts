@@ -22,6 +22,8 @@ export interface ShimState {
   reasoningEfforts: string[];
   /** Absolute path of the bundled codex binary at the time the state was written. */
   realCodexHint?: string;
+  /** Optional user-configured transport wrapper; receives the real CLI path then its arguments. */
+  appServerWrapper?: string;
   debug?: boolean;
 }
 

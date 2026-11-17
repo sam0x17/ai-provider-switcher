@@ -1,8 +1,8 @@
 {
   "name": "ai-provider-switcher",
   "displayName": "AI Provider Switcher",
-  "description": "Adds the models served by one or more OpenAI-compatible servers (LM Studio, Ollama, vLLM, llama.cpp…) to the model pickers of the Codex and Claude Code VS Code extensions, and routes requests for those models to the server that offers them.",
-  "version": "0.2.0",
+  "description": "Adds the models served by one or more OpenAI-compatible servers (LM Studio, Ollama, vLLM, llama.cpp\u2026) to the model pickers of the Codex and Claude Code VS Code extensions, and routes requests for those models to the server that offers them.",
+  "version": "0.2.1",
   "publisher": "durosoft",
   "license": "MIT",
   "private": true,
@@ -207,7 +207,7 @@
           "default": "aiswitch",
           "scope": "application",
           "pattern": "^[A-Za-z0-9_-]+$",
-          "description": "Id of the Codex model_providers entry for a single-server setup, and the prefix for the ids derived from aiProviderSwitcher.providers entries (e.g. aiswitch-mac-studio). Must not be a built-in Codex provider id (openai, lmstudio, ollama…)."
+          "description": "Id of the Codex model_providers entry for a single-server setup, and the prefix for the ids derived from aiProviderSwitcher.providers entries (e.g. aiswitch-mac-studio). Must not be a built-in Codex provider id (openai, lmstudio, ollama\u2026)."
         },
         "aiProviderSwitcher.codex.reasoningEfforts": {
           "type": "array",
@@ -239,6 +239,12 @@
           "default": false,
           "scope": "application",
           "description": "Verbose logging (router requests, Codex JSON-RPC rewrites)."
+        },
+        "aiProviderSwitcher.codex.appServerWrapper": {
+          "type": "string",
+          "default": "",
+          "scope": "application",
+          "description": "Optional absolute executable for the Codex app-server transport (for example Gent). Receives the real Codex executable path followed by its arguments. Model routing and credentials remain managed by AI Provider Switcher. Reload Codex after changing this."
         }
       }
     }

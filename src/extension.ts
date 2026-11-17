@@ -497,10 +497,13 @@ class Switcher {
       models: this.models,
       reasoningEfforts: settings.codex.reasoningEfforts,
       realCodexHint,
+      appServerWrapper: settings.codex.appServerWrapper || undefined,
       debug: settings.debug,
     };
     const statePath = path.join(this.shimDir, 'state.json');
     writeFileAtomic(statePath, JSON.stringify(shimState, null, 2));
+    // Capability marker for transport installers; contains no provider configuration.
+    writeFileAtomic(path.join(this.shimDir, 'app-server-wrapper-v1'), 'ai-provider-switcher/app-server-wrapper/v1\n', 0o600);
     const filters = Object.fromEntries(settings.providers.map((p) => [p.id, { include: p.include, exclude: p.exclude }]));
     writeFileAtomic(path.join(this.shimDir, 'filter.json'), JSON.stringify(filters));
 

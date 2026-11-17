@@ -29,6 +29,7 @@ export interface SwitcherSettings {
     providerId: string;
     reasoningEfforts: string[];
     writeConfigToml: boolean;
+    appServerWrapper: string;
   };
   debug: boolean;
 }
@@ -79,6 +80,7 @@ export function readSettings(): SwitcherSettings {
       providerId: codexProviderId,
       reasoningEfforts: list('codex.reasoningEfforts', ['low', 'medium', 'high']),
       writeConfigToml: c.get<boolean>('codex.writeConfigToml', true),
+      appServerWrapper: str('codex.appServerWrapper', ''),
     },
     debug: c.get<boolean>('debug', false),
   };
