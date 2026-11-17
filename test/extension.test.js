@@ -113,6 +113,7 @@ test('activate() wires Claude Code and Codex end to end, and Disable restores ev
     'aiProviderSwitcher.claude.routerPort': routerPort,
     'claudeCode.environmentVariables': [{ name: 'ANTHROPIC_BASE_URL', value: 'http://gateway.example' }, { name: 'OTHER', value: '1' }],
     'chatgpt.cliExecutable': '/usr/local/bin/codex-custom',
+    'aiProviderSwitcher.codex.appServerWrapper': '/tmp/fixture gent/wrapper',
   }, codexExtDir);
 
   const originalLoad = Module._load;
@@ -157,6 +158,8 @@ test('activate() wires Claude Code and Codex end to end, and Disable restores ev
     assert.deepEqual(state.providers, [{ id: 'aiswitch', name: 'Fake Studio', baseUrl: lm.url, apiKeyEnv: 'AISWITCH_API_KEY' }]);
     assert.deepEqual(state.models.map((m) => m.id), ['local-a', 'local-b']);
     assert.equal(state.realCodexHint, path.join(codexExtDir, 'bin', 'macos-aarch64', 'codex'));
+    assert.equal(state.appServerWrapper, '/tmp/fixture gent/wrapper');
+    assert.equal(fs.readFileSync(path.join(tmp, 'globalStorage', 'codex', 'app-server-wrapper-v1'), 'utf8'), 'ai-provider-switcher/app-server-wrapper/v1\n');
     const toml = fs.readFileSync(path.join(codexHome, 'config.toml'), 'utf8');
     assert.ok(toml.startsWith('model = "gpt-5.6-sol"\n'));
     assert.ok(toml.includes('[model_providers.aiswitch]') && toml.includes(`base_url = "${lm.url}"`));
@@ -189,6 +192,11 @@ test('activate() wires Claude Code and Codex end to end, and Disable restores ev
     const multiState = JSON.parse(fs.readFileSync(path.join(tmp, 'globalStorage', 'codex', 'state.json'), 'utf8'));
     assert.deepEqual(multiState.providers.map((p) => p.id), ['aiswitch-fake-studio', 'aiswitch-mac-studio']);
     assert.equal(multiState.models.find((m) => m.id === 'GLM-5.3-Flash').provider, 'aiswitch-mac-studio');
+    assert.equal(multiState.appServerWrapper, '/tmp/fixture gent/wrapper');
+    assert.equal(settings.get('chatgpt.cliExecutable'), shim);
+    await vscode.workspace.getConfiguration('aiProviderSwitcher').update('codex.appServerWrapper', '');
+    assert.ok(await waitFor(() => !JSON.parse(fs.readFileSync(path.join(tmp, 'globalStorage', 'codex', 'state.json'), 'utf8')).appServerWrapper));
+    assert.equal(settings.get('chatgpt.cliExecutable'), shim);
     const multiHealth = await (await fetch(`http://127.0.0.1:${routerPort}/__ai_provider_switcher/health`)).json();
     assert.deepEqual(multiHealth.providers, [lm.url, mac.url].map((u) => u.replace(/\/v1$/, '')));
 

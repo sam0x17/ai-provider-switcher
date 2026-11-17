@@ -74,6 +74,7 @@ Open a new Codex chat or a new Claude Code conversation and the provider models 
 | `aiProviderSwitcher.codex.providerId` | `aiswitch` | `model_providers` id for a single-server setup, and the prefix for ids derived from `providers` entries (`aiswitch-mac-studio`). Must not be a built-in id such as `openai`, `lmstudio` or `ollama`. |
 | `aiProviderSwitcher.codex.reasoningEfforts` | `["low","medium","high"]` | Effort choices shown for provider models. |
 | `aiProviderSwitcher.codex.writeConfigToml` | `true` | Also keep the provider in `~/.codex/config.toml`. |
+| `aiProviderSwitcher.codex.appServerWrapper` | `""` | Optional absolute executable for the app-server transport. Applies to this application; reload Codex after changing it. |
 | `aiProviderSwitcher.debug` | `false` | Verbose logging. |
 
 ## What the router does to requests for provider models
@@ -113,6 +114,18 @@ router's schema cleanup. There is no server setting for either the grammar step 
 Structured Output toggle does not disable it; see lmstudio-bug-tracker issue #2236). Until LM Studio changes this,
 serve the model for Claude Code from LM Studio 0.4.16-2 or from another OpenAI+Anthropic-compatible server such as
 llama.cpp's `llama-server`, and point a `providers` entry at it.
+
+## Codex transport wrappers
+
+Version 0.2.1 adds an optional `aiProviderSwitcher.codex.appServerWrapper` setting for tools such as Gent. Leave `chatgpt.cliExecutable` pointing to the switcher's generated shim. The switcher continues to supply model choices, provider overrides, credentials and RPC routing, then launches the transport as:
+
+```text
+WRAPPER REAL_CODEX_EXECUTABLE ORIGINAL_ARGUMENTS...
+```
+
+Arguments are passed directly without shell interpolation. The wrapper must preserve the app-server's JSON-lines input and output, and manage the native process it starts. Other commands, including `--version` and login, still go directly to Codex. An empty setting disables the wrapper. A configured wrapper that cannot launch fails explicitly; the switcher does not silently bypass it.
+
+After installing or changing a wrapper, run **AI Provider Switcher: Refresh models**, then reload the VS Code window. Gent's compatible installer sets this value automatically. Each successful switcher sync writes a nonsecret `app-server-wrapper-v1` capability file next to the generated shim, so Gent can distinguish compatible versions without reading provider credentials. Removing Gent should remove only this wrapper setting and leave the switcher shim selected.
 
 ## Limitations
 

@@ -15,6 +15,7 @@ import { providerOverrides } from './config';
 import { findBundledCodex } from './find-codex';
 import { RpcRewriter } from './rpc-rewrite';
 import { ShimMemory, ShimState } from './state';
+import { appServerCommand } from './wrapper';
 
 const statePath = process.env.AI_PROVIDER_SWITCHER_STATE ?? '';
 const stateDir = statePath ? path.dirname(statePath) : process.cwd();
@@ -80,7 +81,12 @@ if (appServerIndex === -1) {
   child.on('exit', (code, signal) => process.exit(code ?? (signal ? 1 : 0)));
   child.on('error', (e) => { process.stderr.write(`AI Provider Switcher: ${e.message}\n`); process.exit(126); });
 } else {
-  runAppServer(appServerIndex);
+  try {
+    runAppServer(appServerIndex);
+  } catch (e) {
+    process.stderr.write(`AI Provider Switcher: failed to start Codex: ${(e as Error).message}\n`);
+    process.exit(126);
+  }
 }
 
 function runAppServer(appServerIndex: number): void {
@@ -93,7 +99,8 @@ function runAppServer(appServerIndex: number): void {
   const fullArgs = [...args.slice(0, appServerIndex), ...overrides, ...args.slice(appServerIndex)];
   log(`starting ${realCodex} ${fullArgs.join(' ')}`);
 
-  const child = spawn(realCodex, fullArgs, { stdio: ['pipe', 'pipe', 'inherit'] as const, env });
+  const command = appServerCommand(realCodex, fullArgs, state.appServerWrapper);
+  const child = spawn(command.binary, command.args, { stdio: ['pipe', 'pipe', 'inherit'] as const, env });
 
   const rewriter = new RpcRewriter({
     getState: () => { refreshState(); return state; },
